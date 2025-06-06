@@ -12,6 +12,7 @@ st.title("🔐 Interface de Usuários - Flask + JWT")
 if "jwt" not in st.session_state:
     st.session_state.jwt = None
 
+session = ''
 # Tela de login
 if not st.session_state.jwt:
     st.subheader("Login")
@@ -23,22 +24,25 @@ if not st.session_state.jwt:
         if resp.status_code == 200:
             st.success("Login bem-sucedido!")
             st.session_state.jwt = resp.json()["access token"]
+            session = resp.json()["access token"]
         else:
             st.error("Usuário ou senha inválidos.")
 
 # Após login
 else:
     st.success("Autenticado com sucesso!")
-    headers = {
-        "Authorization": f"Bearer {st.session_state.jwt}",
+    def get_headers():
+        return {
+        "Authorization": f"Bearer {st.session_state.jwt}".strip(),
+        "Accept": "application/json",
         "Content-Type": "application/json"
-    }
-
+        }
+    
     menu = st.sidebar.selectbox("Escolha a ação", ["Listar", "Criar", "Atualizar", "Deletar", "Logout"])
 
     if menu == "Listar":
         st.header("📋 Lista de Usuários")
-        resp = requests.get(USER_URL, headers=headers)
+        resp = requests.get(USER_URL, headers=get_headers())
         if resp.status_code == 200:
             users = resp.json()["Users"]
             st.json(users)
@@ -53,7 +57,7 @@ else:
 
         if st.button("Criar"):
             payload = {"username": uname, "password": pwd, "role_id": role_id}
-            resp = requests.post(USER_URL, headers=headers, json=payload)
+            resp = requests.post(USER_URL, headers=get_headers(), json=payload)
             if resp.status_code == 201:
                 st.success("Usuário criado com sucesso!")
             else:
@@ -72,7 +76,7 @@ else:
                 data["username"] = new_name
             if new_pwd:
                 data["password"] = new_pwd
-            resp = requests.patch(f"{USER_URL}/{uid}", headers=headers, json=data)
+            resp = requests.patch(f"{USER_URL}/{uid}", json=data)
             if resp.status_code == 200:
                 st.success("Usuário atualizado!")
                 st.json(resp.json())
@@ -83,7 +87,7 @@ else:
         st.header("🗑️ Deletar Usuário")
         uid = st.number_input("ID do usuário a deletar", min_value=1, step=1)
         if st.button("Deletar"):
-            resp = requests.delete(f"{USER_URL}/{uid}", headers=headers)
+            resp = requests.delete(f"{USER_URL}/{uid}")
             if resp.status_code == 204:
                 st.success("Usuário deletado com sucesso!")
             else:
